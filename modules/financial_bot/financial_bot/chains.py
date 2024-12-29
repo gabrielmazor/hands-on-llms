@@ -13,6 +13,9 @@ from unstructured.cleaners.core import (
     group_broken_paragraphs,
     replace_unicode_quotes,
 )
+import os
+import openai
+import json
 
 from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
@@ -95,7 +98,7 @@ class ContextExtractorChain(Chain):
         The name of the collection to search in the vector store.
     """
 
-    top_k: int = 1
+    top_k: int = 5
     embedding_model: EmbeddingModelSingleton
     vector_store: qdrant_client.QdrantClient
     vector_collection: str
@@ -107,6 +110,42 @@ class ContextExtractorChain(Chain):
     @property
     def output_keys(self) -> List[str]:
         return ["context"]
+
+
+    def rank_documents(self, query: str, documents: List[str]) -> List[str]: 
+        """
+        Rank the documents using openAi API according to their relevant to the query.
+
+        Parameters:
+        -----------
+        query : str
+            The input query sent by the user.
+
+        Returns:
+        --------
+        List[str]
+            A list of ranked documents in decending order.
+        """
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        
+
+
+        # i ask the model to rank the documents based on the indices and not to return the text in order to reduce the number of toekens used
+        response = openai.Completion.create(
+            engine="gpt-3.5-turbo-instruct",
+            prompt=f"Rank the following indices of documents (in this format [2,3,1,4]) based on their relevance to the query: '{query}'\n\n" +
+                "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(documents)]) +
+                "\n\nRanked documents:",
+            max_tokens=50,
+            n=1,
+            stop=None,
+            temperature=0.7
+        )
+
+        list_of_integers = json.loads(response.choices[0].text)
+        ranked_docs = [documents[doc_index-1] for doc_index in list_of_integers]
+
+        return ranked_docs
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         _, quest_key = self.input_keys
