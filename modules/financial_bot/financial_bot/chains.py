@@ -169,8 +169,8 @@ class ContextExtractorChain(Chain):
 
         _ranked_documents = self.rank_documents(question_str, [match.payload["summary"] for match in matches])
 
-
-        context = "\n".join(_ranked_documents) + "\n"
+        LIMIT = 3
+        context = "\n".join(_ranked_documents[:LIMIT]) + "\n"
         #for match in _ranked_documents:
         #    context += match + "\n"
 
