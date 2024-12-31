@@ -134,13 +134,18 @@ class ContextExtractorChain(Chain):
         # remove duplicates
         documents = list(set(documents))
 
+        # replace line breaks with space
+        documents = [doc.replace("\n", " ") for doc in documents]
+
         try:
             # ask the model to eliminate the irrelevant documents and rank the relevant ones
             # in reality, i might have used a local model for this task, as its cheaper
-            # i ask the model to rank the documents based on the indices and not to return the text in order to reduce the number of toekens used
+            # i ask the model to rank the documents based on the indices and not to return 
+            # the text in order to reduce the number of toekens used
             response = openai.Completion.create(
             engine="gpt-3.5-turbo-instruct",
-            prompt=f"Hi, i am a financial analyst, can you generate me a list of indices (in this format [2,3,1,4]) of only the relevant docs to this query, sort them by relevancy  : '{query}'\n\n" +
+            prompt=f"Hi, i am a financial analyst, can you generate me a list of indices " + 
+            "(in this format [2,3,1,4]) of only the relevant docs to this query, sort them by relevancy  : '{query}'\n\n" +
                 "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(documents)]) +
                 "\n\nRanked documents:",
             max_tokens=50,
