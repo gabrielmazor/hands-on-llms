@@ -85,6 +85,7 @@ def run_local(
             # store all the scores in lists
             for key, value in regas_eval.items():
                 sum_array[key].append(value)
+            ragas_eval["about_me"] = elem["about_me"]
             regas_eval["question"] = elem["question"]
             regas_eval["response"] = response
             regas_eval["context"] = output_context.split('\n')
