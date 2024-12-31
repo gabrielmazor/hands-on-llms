@@ -128,6 +128,9 @@ class ContextExtractorChain(Chain):
         """
         openai.api_key = os.getenv("OPENAI_API_KEY")
         
+        # remove duplicates
+        documents = list(set(documents))
+
 
         # ask the model to eliminate the irrelevant documents and rank the relevant ones
         # in reality, i might have used a local model for this task, as its cheaper
