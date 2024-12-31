@@ -129,18 +129,19 @@ class ContextExtractorChain(Chain):
         openai.api_key = os.getenv("OPENAI_API_KEY")
         
 
-
+        # ask the model to eliminate the irrelevant documents and rank the relevant ones
+        # in reality, i might have used a local model for this task, as its cheaper
         # i ask the model to rank the documents based on the indices and not to return the text in order to reduce the number of toekens used
         response = openai.Completion.create(
-            engine="gpt-3.5-turbo-instruct",
-            prompt=f"Rank the following indices of documents (in this format [2,3,1,4]) based on their relevance to the query: '{query}'\n\n" +
-                "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(documents)]) +
-                "\n\nRanked documents:",
-            max_tokens=50,
-            n=1,
-            stop=None,
-            temperature=0.7
-        )
+        engine="gpt-3.5-turbo-instruct",
+        prompt=f"Hi, i am a financial analyst, can you generate me a list of indices (in this format [2,3,1,4]) of only the relevant docs to this query, sort them by relevancy  : '{query}'\n\n" +
+               "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(documents)]) +
+               "\n\nRanked documents:",
+        max_tokens=50,
+        n=1,
+        stop=None,
+        temperature=0.7
+    )
 
         list_of_integers = json.loads(response.choices[0].text)
         ranked_docs = [documents[doc_index-1] for doc_index in list_of_integers]
@@ -169,7 +170,7 @@ class ContextExtractorChain(Chain):
 
         _ranked_documents = self.rank_documents(question_str, [match.payload["summary"] for match in matches])
 
-        LIMIT = 3
+        LIMIT = 5
         context = "\n".join(_ranked_documents[:LIMIT]) + "\n"
         #for match in _ranked_documents:
         #    context += match + "\n"
