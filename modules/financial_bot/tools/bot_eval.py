@@ -68,6 +68,8 @@ def run_local(
 
     with open(testset_path, "r") as f:
         data = json.load(f)
+
+        res_list = []
         for elem in data:
             input_payload = {
                 "about_me": elem["about_me"],
@@ -76,7 +78,22 @@ def run_local(
             }
             output_context = bot.finbot_chain.chains[0].run(input_payload)
             response = bot.answer(**input_payload)
-            logger.info("Score=%s", evaluate_w_ragas(query=elem["question"], context=output_context.split('\n'), output=response, ground_truth=elem["response"], metrics=metrics))
+            regas_eval = evaluate_w_ragas(query=elem["question"], context=output_context.split('\n'), output=response, ground_truth=elem["response"], metrics=metrics)
+            #logger.info("Score=%s", regas_eval)
+            regas_eval["question"] = elem["question"]
+            regas_eval["response"] = response
+            regas_eval["context"] = output_context.split('\n')
+
+
+            json_string = json.dumps(regas_eval, indent=4)
+            logger.info("RAGAS Evaluation:%s", json_string)
+            res_list.append(regas_eval)
+
+
+        logger.info("--------------------- RESULT SUMMARY ----------------------------")
+        logger.info( json.dumps(res_list, indent=4))
+
+
 
     return response
 
