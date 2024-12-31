@@ -147,6 +147,12 @@ class ContextExtractorChain(Chain):
     )
 
         list_of_integers = json.loads(response.choices[0].text)
+
+        # remove duplicates
+        list_of_integers = list(set(list_of_integers))
+        # remove indexes that are out of range
+        list_of_integers = [i for i in list_of_integers if (i <= len(documents) or i > 0)]
+
         ranked_docs = [documents[doc_index-1] for doc_index in list_of_integers]
 
         return ranked_docs
