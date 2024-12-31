@@ -127,34 +127,36 @@ class ContextExtractorChain(Chain):
             A list of ranked documents in decending order.
         """
         openai.api_key = os.getenv("OPENAI_API_KEY")
-        
+        ranked_docs = []
         # remove duplicates
         documents = list(set(documents))
 
+        try:
+            # ask the model to eliminate the irrelevant documents and rank the relevant ones
+            # in reality, i might have used a local model for this task, as its cheaper
+            # i ask the model to rank the documents based on the indices and not to return the text in order to reduce the number of toekens used
+            response = openai.Completion.create(
+            engine="gpt-3.5-turbo-instruct",
+            prompt=f"Hi, i am a financial analyst, can you generate me a list of indices (in this format [2,3,1,4]) of only the relevant docs to this query, sort them by relevancy  : '{query}'\n\n" +
+                "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(documents)]) +
+                "\n\nRanked documents:",
+            max_tokens=50,
+            n=1,
+            stop=None,
+            temperature=0.7
+        )
 
-        # ask the model to eliminate the irrelevant documents and rank the relevant ones
-        # in reality, i might have used a local model for this task, as its cheaper
-        # i ask the model to rank the documents based on the indices and not to return the text in order to reduce the number of toekens used
-        response = openai.Completion.create(
-        engine="gpt-3.5-turbo-instruct",
-        prompt=f"Hi, i am a financial analyst, can you generate me a list of indices (in this format [2,3,1,4]) of only the relevant docs to this query, sort them by relevancy  : '{query}'\n\n" +
-               "\n".join([f"{i+1}. {doc}" for i, doc in enumerate(documents)]) +
-               "\n\nRanked documents:",
-        max_tokens=50,
-        n=1,
-        stop=None,
-        temperature=0.7
-    )
+            list_of_integers = json.loads(response.choices[0].text)
 
-        list_of_integers = json.loads(response.choices[0].text)
+            # remove duplicates
+            list_of_integers = list(set(list_of_integers))
+            # remove indexes that are out of range
+            list_of_integers = [i for i in list_of_integers if (i <= len(documents) or i > 0)]
 
-        # remove duplicates
-        list_of_integers = list(set(list_of_integers))
-        # remove indexes that are out of range
-        list_of_integers = [i for i in list_of_integers if (i <= len(documents) or i > 0)]
-
-        ranked_docs = [documents[doc_index-1] for doc_index in list_of_integers]
-
+            ranked_docs = [documents[doc_index-1] for doc_index in list_of_integers]
+        except Exception as e:
+            # in case of hilusinations with bad indices or formats or that openai is down return an empty list
+            pass
         return ranked_docs
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -178,6 +180,14 @@ class ContextExtractorChain(Chain):
         #context = ""
 
         _ranked_documents = self.rank_documents(question_str, [match.payload["summary"] for match in matches])
+
+        # in case i dont have the ranking. i will use the top k matches
+        if not _ranked_documents:
+            _ranked_documents = [match.payload["summary"] for match in matches]
+
+            # remove duplicates
+            _ranked_documents = list(set(_ranked_documents))
+
 
         LIMIT = 5
         context = "\n".join(_ranked_documents[:LIMIT]) + "\n"
