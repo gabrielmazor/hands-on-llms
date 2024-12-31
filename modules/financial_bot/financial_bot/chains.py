@@ -199,7 +199,7 @@ class ContextExtractorChain(Chain):
         # remove empty
         _ranked_documents = [doc for doc in _ranked_documents if doc.strip()]
 
-        LIMIT_N_AFTER_RERANKING = 9
+        LIMIT_N_AFTER_RERANKING = 7
         context = "\n".join(_ranked_documents[:LIMIT_N_AFTER_RERANKING]) + "\n"
         #for match in _ranked_documents:
         #    context += match + "\n"
