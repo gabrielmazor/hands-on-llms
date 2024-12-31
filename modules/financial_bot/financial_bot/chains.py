@@ -128,6 +128,9 @@ class ContextExtractorChain(Chain):
         """
         openai.api_key = os.getenv("OPENAI_API_KEY")
         ranked_docs = []
+
+        # remove empty
+        documents = [doc for doc in documents if doc.strip()]
         # remove duplicates
         documents = list(set(documents))
 
@@ -188,6 +191,8 @@ class ContextExtractorChain(Chain):
             # remove duplicates
             _ranked_documents = list(set(_ranked_documents))
 
+        # remove empty
+        _ranked_documents = [doc for doc in _ranked_documents if doc.strip()]
 
         LIMIT = 5
         context = "\n".join(_ranked_documents[:LIMIT]) + "\n"
