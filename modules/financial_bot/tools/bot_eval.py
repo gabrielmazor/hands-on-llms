@@ -68,7 +68,8 @@ def run_local(
 
     with open(testset_path, "r") as f:
         data = json.load(f)
-
+        from collections import defaultdict
+        sum_array = defaultdict(list)
         res_list = []
         for elem in data:
             input_payload = {
@@ -80,6 +81,10 @@ def run_local(
             response = bot.answer(**input_payload)
             regas_eval = evaluate_w_ragas(query=elem["question"], context=output_context.split('\n'), output=response, ground_truth=elem["response"], metrics=metrics)
             #logger.info("Score=%s", regas_eval)
+
+            # store all the scores in lists
+            for key, value in regas_eval.items():
+                sum_array[key].append(value)
             regas_eval["question"] = elem["question"]
             regas_eval["response"] = response
             regas_eval["context"] = output_context.split('\n')
@@ -92,6 +97,11 @@ def run_local(
 
         logger.info("--------------------- RESULT SUMMARY ----------------------------")
         logger.info( json.dumps(res_list, indent=4))
+
+        logger.info("--------------------- MEANS ----------------------------")
+        for key, values in sum_array.items():
+            avg  = sum(values) / len(values)
+            logger.info(f"{key}={avg}    , (Total: {len(values)})")
 
 
 
