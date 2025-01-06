@@ -112,7 +112,7 @@ class ContextExtractorChain(Chain):
         return ["context"]
 
 
-    def handle_matched(self, matched: List[Dict[str, Any]]) -> List[str]:
+    def handle_matched(self, matched: List[Dict[str, Any]], query: str) -> List[str]:
         """
         Handle the matched documents and return the context.
         choose from the correct field from the payload of the matched documents.
@@ -122,6 +122,9 @@ class ContextExtractorChain(Chain):
         -----------
         matched : List[Dict[str, Any]]
             The list of matched documents.
+
+        query : str
+            The input query sent by the user.
 
         Returns:
         --------
@@ -247,7 +250,7 @@ class ContextExtractorChain(Chain):
 
         # i query the model and ask for the relevant documents, but take their summary
         # what if there is no summary? i would use something else.
-        enriched_documents = self.handle_matched(matches)
+        enriched_documents = self.handle_matched(matches , question_str)
 
 
         _ranked_documents = self.rank_documents(question_str, enriched_documents)
