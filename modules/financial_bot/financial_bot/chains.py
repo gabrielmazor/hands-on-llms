@@ -25,7 +25,7 @@ from financial_bot.template import PromptTemplate
 
 # This is a cache json file
 # Define the cache file path in the user's home directory
-CACHE_FILE = os.path.join(os.path.expanduser("~"), "cache.json")
+CACHE_FILE = os.path.join(os.path.expanduser("~"), ".llm_cache.json")
 
 def load_cache():
     if os.path.exists(CACHE_FILE):
@@ -65,12 +65,15 @@ def call_openai_cached(engine, prompt, max_tokens, n, stop, temperature) -> str:
     """Call the OpenAI API with the given parameters and cache the response."""
     cached_response = fetch_from_cache(prompt)
     if cached_response:
+        print('cached response')
+        print(cached_response)
         return cached_response
 
     response = openai.Completion.create(
         engine=engine, prompt=prompt, max_tokens=max_tokens, n=n, stop=stop, temperature=temperature
     )
     store_in_cache(prompt, response.choices[0].text)
+    print(response.choices[0].text)
     return response.choices[0].text
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
