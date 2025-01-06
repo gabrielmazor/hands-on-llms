@@ -44,24 +44,33 @@ cache = load_cache()
 atexit.register(save_cache, cache)
 
 
-def call_openai_cached(engine, prompt, max_tokens, n, stop, temperature) -> str:
-    '''
-    Call the OpenAI API with the given parameters and cache the response.
-    this is a limited cache but will be sustainable for the current task
-    for requests from this host
-    '''
+
+def store_in_cache(prompt: str, response: str) -> None:
+    """Store the response in the cache with the current date."""
     global cache
-    if prompt in cache:
-        if cache.get(prompt, {}).get('response', None) is not None:
-            return cache[prompt]["response"]
-    response = openai.Completion.create(engine=engine, prompt=prompt, max_tokens=max_tokens, n=n, stop=stop, temperature=temperature)
-    
-    # store in cache
-    # Get the current date
+
+    # TODO : the time is here so ill be able to remove old entries from the cache at some point
     current_time = time.localtime()
-    # Format the date as a string
     date_str = time.strftime("%Y-%m-%d", current_time)
-    cache[prompt] = {"response": response.choices[0].text, 'date': date_str}
+    cache[prompt] = {"response": response, "date": date_str}
+
+def fetch_from_cache(prompt: str) -> Optional[str]:
+    """Fetch the response from the cache if it exists."""
+    global cache
+    if prompt in cache and cache[prompt].get("response"):
+        return cache[prompt]["response"]
+    return None
+
+def call_openai_cached(engine, prompt, max_tokens, n, stop, temperature) -> str:
+    """Call the OpenAI API with the given parameters and cache the response."""
+    cached_response = fetch_from_cache(prompt)
+    if cached_response:
+        return cached_response
+
+    response = openai.Completion.create(
+        engine=engine, prompt=prompt, max_tokens=max_tokens, n=n, stop=stop, temperature=temperature
+    )
+    store_in_cache(prompt, response.choices[0].text)
     return response.choices[0].text
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
