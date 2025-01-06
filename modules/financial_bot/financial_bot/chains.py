@@ -16,10 +16,53 @@ from unstructured.cleaners.core import (
 import os
 import openai
 import json
+import atexit
+
 
 from financial_bot.embeddings import EmbeddingModelSingleton
 from financial_bot.template import PromptTemplate
 
+
+# This is a cache json file
+# Define the cache file path in the user's home directory
+CACHE_FILE = os.path.join(os.path.expanduser("~"), "cache.json")
+
+def load_cache():
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+
+# Save cache to disk at exit
+def save_cache(cache):
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=4)
+
+# Register the save_cache function to be called at exit
+cache = load_cache()
+atexit.register(save_cache, cache)
+
+
+def call_openai_cached(engine, prompt, max_tokens, n, stop, temperature) -> str:
+    '''
+    Call the OpenAI API with the given parameters and cache the response.
+    this is a limited cache but will be sustainable for the current task
+    for requests from this host
+    '''
+    global cache
+    if prompt in cache:
+        if cache.get(prompt, {}).get('response', None) is not None:
+            return cache[prompt]["response"]
+    response = openai.Completion.create(engine=engine, prompt=prompt, max_tokens=max_tokens, n=n, stop=stop, temperature=temperature)
+    
+    # store in cache
+    # Get the current date
+    current_time = time.localtime()
+    # Format the date as a string
+    date_str = time.strftime("%Y-%m-%d", current_time)
+    cache[prompt] = {"response": response.choices[0].text, 'date': date_str}
+    return response.choices[0].text
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
     """
@@ -133,7 +176,7 @@ class ContextExtractorChain(Chain):
         """
 
 
-        # our options:
+        # our options (brainstorming):
         # 1. remove empty summaries (maybe extend k in order to have more non enmpty summaries)
         # 2. using rule based approach to choose the best field to use
         # 3. summarize the missing summary from the text
@@ -145,14 +188,13 @@ class ContextExtractorChain(Chain):
         for match in matched:
             if match.payload["summary"].strip():
                 output.append(match.payload["summary"])
-
             
                 # or the text if its less than 200 words
             elif len(match.payload["text"].split()) < 200:
                 output.append(match.payload["text"])
             else:
                 # else, summarize the text in the context of the query
-                response = openai.Completion.create(
+                response = call_openai_cached(
                     engine="gpt-3.5-turbo-instruct",
                     prompt=f"Hi, i am a financial analyst, can you summurise the relevant parts in this text in ~70 words, sort them by relevancy this query  : '{query}'\n\n" +
                         "\nOriginal Doc: f{d} ",
@@ -161,8 +203,7 @@ class ContextExtractorChain(Chain):
                     stop=None,
                     temperature=0.7
                 )
-                # in the real world, this summary should be uploaded to the db (or a cache) to avoid summarizing over and over again
-                output.append(response.choices[0].text)
+                output.append(response)
 
 
                 
@@ -202,7 +243,7 @@ class ContextExtractorChain(Chain):
             # in reality, i might have used a local model for this task, as its cheaper
             # i ask the model to rank the documents based on the indices and not to return 
             # the text in order to reduce the number of toekens used
-            response = openai.Completion.create(
+            response = call_openai_cached(
             engine="gpt-3.5-turbo-instruct",
             prompt=f"Hi, i am a financial analyst, can you generate me a list of indices " + 
             "(in this format [2,3,1,4]) of only the relevant docs to this query, sort them by relevancy  : '{query}'\n\n" +
@@ -214,7 +255,7 @@ class ContextExtractorChain(Chain):
             temperature=0.7
         )
 
-            list_of_integers = json.loads(response.choices[0].text)
+            list_of_integers = json.loads(response)
 
             # remove duplicates
             list_of_integers = list(set(list_of_integers))
@@ -246,7 +287,6 @@ class ContextExtractorChain(Chain):
             collection_name=self.vector_collection,
         )
 
-        #context = ""
 
         # i query the model and ask for the relevant documents, but take their summary
         # what if there is no summary? i would use something else.
@@ -267,8 +307,6 @@ class ContextExtractorChain(Chain):
 
         LIMIT_N_AFTER_RERANKING = 7
         context = "\n".join(_ranked_documents[:LIMIT_N_AFTER_RERANKING]) + "\n"
-        #for match in _ranked_documents:
-        #    context += match + "\n"
 
         return {
             "context": context,
