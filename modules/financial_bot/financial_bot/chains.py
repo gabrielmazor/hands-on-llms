@@ -146,15 +146,12 @@ class ContextExtractorChain(Chain):
             if match.payload["summary"].strip():
                 output.append(match.payload["summary"])
 
-                # try a headline if its longer than 12 words
-            elif len(match.payload["headline"].split()) > 12:
-                output.append(match.payload["headline"])
-
+            
                 # or the text if its less than 200 words
             elif len(match.payload["text"].split()) < 200:
                 output.append(match.payload["text"])
             else:
-                # else, summarize the text
+                # else, summarize the text in the context of the query
                 response = openai.Completion.create(
                     engine="gpt-3.5-turbo-instruct",
                     prompt=f"Hi, i am a financial analyst, can you summurise the relevant parts in this text in ~70 words, sort them by relevancy this query  : '{query}'\n\n" +
@@ -164,12 +161,14 @@ class ContextExtractorChain(Chain):
                     stop=None,
                     temperature=0.7
                 )
+                # in the real world, this summary should be uploaded to the db (or a cache) to avoid summarizing over and over again
                 output.append(response.choices[0].text)
 
 
                 
-        # remove duplicates
-        output = list(set(output))
+        # remove duplicates and strip
+        output = list(set(output.strip()))
+        output = [doc.strip() for doc in output]
 
         return output
 
@@ -222,7 +221,8 @@ class ContextExtractorChain(Chain):
             # remove indexes that are out of range
             list_of_integers = [i for i in list_of_integers if (i <= len(documents) or i > 0)]
 
-            ranked_docs = [documents[doc_index-1] for doc_index in list_of_integers]
+            # strip and return the ranked documents
+            ranked_docs = [documents[doc_index-1].strip() for doc_index in list_of_integers]
         except Exception as e:
             # in case of hilusinations with bad indices or formats or that openai is down return an empty list
             pass
