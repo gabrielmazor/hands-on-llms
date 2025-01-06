@@ -112,6 +112,64 @@ class ContextExtractorChain(Chain):
         return ["context"]
 
 
+    def handle_matched(self, matched: List[Dict[str, Any]]) -> List[str]:
+        """
+        Handle the matched documents and return the context.
+        choose from the correct field from the payload of the matched documents.
+        handle empty summaries and duplicates.
+
+        Parameters:
+        -----------
+        matched : List[Dict[str, Any]]
+            The list of matched documents.
+
+        Returns:
+        --------
+        List[str]
+            The context from the matched documents.
+        """
+
+
+        # our options:
+        # 1. remove empty summaries (maybe extend k in order to have more non enmpty summaries)
+        # 2. using rule based approach to choose the best field to use
+        # 3. summarize the missing summary from the text
+        #    a. we might have to explain that its way cheaper than summarizing everything in the streaming pipeline
+        #    b. in the real world, i would have a local cache in order to avoid summarising over and over again, or just upload the summary back to the db
+         
+        # try rule based. if not, use the model to summarize the text
+        output = []
+        for match in matched:
+            if match.payload["summary"].strip():
+                output.append(match.payload["summary"])
+
+                # try a headline if its longer than 12 words
+            elif match.payload["headline"].split() > 12:
+                output.append(match.payload["headline"])
+
+                # or the text if its less than 200 words
+            elif match.payload["text"].split() < 200:
+                output.append(match.payload["text"])
+            else:
+                # else, summarize the text
+                response = openai.Completion.create(
+                    engine="gpt-3.5-turbo-instruct",
+                    prompt=f"Hi, i am a financial analyst, can you summurise the relevant parts in this text in ~70 words, sort them by relevancy this query  : '{query}'\n\n" +
+                        "\nOriginal Doc: f{d} ",
+                    max_tokens=200,
+                    n=1,
+                    stop=None,
+                    temperature=0.7
+                )
+                output.append(response.choices[0].text)
+
+
+                
+        # remove duplicates
+        output = list(set(output))
+
+        return output
+
     def rank_documents(self, query: str, documents: List[str]) -> List[str]: 
         """
         Rank the documents using openAi API according to their relevant to the query.
@@ -187,7 +245,12 @@ class ContextExtractorChain(Chain):
 
         #context = ""
 
-        _ranked_documents = self.rank_documents(question_str, [match.payload["summary"] for match in matches])
+        # i query the model and ask for the relevant documents, but take their summary
+        # what if there is no summary? i would use something else.
+        enriched_documents = self.handle_matched(matches)
+
+
+        _ranked_documents = self.rank_documents(question_str, enriched_documents)
 
         # in case i dont have the ranking. i will use the top k matches
         if not _ranked_documents:
