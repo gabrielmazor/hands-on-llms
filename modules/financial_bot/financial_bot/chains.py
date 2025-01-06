@@ -144,11 +144,11 @@ class ContextExtractorChain(Chain):
                 output.append(match.payload["summary"])
 
                 # try a headline if its longer than 12 words
-            elif match.payload["headline"].split() > 12:
+            elif len(match.payload["headline"].split()) > 12:
                 output.append(match.payload["headline"])
 
                 # or the text if its less than 200 words
-            elif match.payload["text"].split() < 200:
+            elif len(match.payload["text"].split()) < 200:
                 output.append(match.payload["text"])
             else:
                 # else, summarize the text
