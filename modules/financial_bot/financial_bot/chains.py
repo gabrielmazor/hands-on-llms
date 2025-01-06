@@ -65,15 +65,12 @@ def call_openai_cached(engine, prompt, max_tokens, n, stop, temperature) -> str:
     """Call the OpenAI API with the given parameters and cache the response."""
     cached_response = fetch_from_cache(prompt)
     if cached_response:
-        print('cached response')
-        print(cached_response)
         return cached_response
 
     response = openai.Completion.create(
         engine=engine, prompt=prompt, max_tokens=max_tokens, n=n, stop=stop, temperature=temperature
     )
     store_in_cache(prompt, response.choices[0].text)
-    print(response.choices[0].text)
     return response.choices[0].text
 
 class StatelessMemorySequentialChain(chains.SequentialChain):
@@ -220,7 +217,7 @@ class ContextExtractorChain(Chain):
 
                 
         # remove duplicates and strip
-        output = list(set(output.strip()))
+        output = list(set(output))
         output = [doc.strip() for doc in output]
 
         return output
