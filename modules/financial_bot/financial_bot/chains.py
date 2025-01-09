@@ -197,7 +197,10 @@ class ContextExtractorChain(Chain):
         for match in matched:
             if match.payload["summary"].strip():
                 output.append(match.payload["summary"])
-            
+
+            # try the headline if its long enough
+            elif len(match.payload["headline"].split()) < 20:
+                output.append(match.payload["headline"])
                 # or the text if its less than 200 words
             elif len(match.payload["text"].split()) < 200:
                 output.append(match.payload["text"])
@@ -273,6 +276,9 @@ class ContextExtractorChain(Chain):
 
             # strip and return the ranked documents
             ranked_docs = [documents[doc_index-1].strip() for doc_index in list_of_integers]
+
+             # leave a message to the LLM and mention that the context is ranked
+            ranked_docs = ["This context is ranked in decending order"] + ranked_docs
         except Exception as e:
             # in case of hilusinations with bad indices or formats or that openai is down return an empty list
             pass
@@ -306,16 +312,16 @@ class ContextExtractorChain(Chain):
 
         # in case i dont have the ranking. i will use the top k matches
         if not _ranked_documents:
-            _ranked_documents = [match.payload["summary"] for match in matches]
+            _ranked_documents = enriched_documents
 
             # remove duplicates
             _ranked_documents = list(set(_ranked_documents))
 
         # remove empty
-        _ranked_documents = [doc for doc in _ranked_documents if doc.strip()]
+        _ranked_documents = [doc.strip() for doc in _ranked_documents if doc.strip()]
 
         LIMIT_N_AFTER_RERANKING = 7
-        context = "\n".join(_ranked_documents[:LIMIT_N_AFTER_RERANKING]) + "\n"
+        context = "\n".join(_ranked_documents[:LIMIT_N_AFTER_RERANKING + 1]) + "\n" # the +1 is for the message to the LLM
 
         return {
             "context": context,
