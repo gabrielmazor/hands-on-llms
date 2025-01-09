@@ -278,7 +278,7 @@ class ContextExtractorChain(Chain):
             ranked_docs = [documents[doc_index-1].strip() for doc_index in list_of_integers]
 
              # leave a message to the LLM and mention that the context is ranked
-            ranked_docs = ["This context is ranked in decending order"] + ranked_docs
+            ranked_docs = ["This context is ranked in decending order."] + ranked_docs
         except Exception as e:
             # in case of hilusinations with bad indices or formats or that openai is down return an empty list
             pass
