@@ -1,6 +1,49 @@
-<div align="center">
+# Hands-on LLMs - MLOPS Course
+## Improved Financial News Retrieval by implementing ReRanking
+---
+
+## Project Overview
+This project extends the **Hands-on LLMs Course** by enhancing the **retrieval and ranking of financial news** used in chatbot responses. The **original pipeline** focused on data ingestion, fine-tuning, and inference. We have integrated an advanced **ReRanking mechanism** to improve the chatbot’s ability to retrieve and prioritize relevant financial news and achieve higher performance metrics.
+
+---
+
+## Key Improvements
+### ReRanking for Financial News Retrieval
+- Integrates **OpenAI’s ChatGPT-3.5 Turbo** for ranking retrieved news chunks.
+- Ensures **more relevant and context-aware** responses.
+- Handles cases where **article summaries are missing**.
+
+### Improved Model Performance
+- Enhances the **faithfulness** of chatbot responses.
+- Boosts the **retrieval accuracy** of financial context.
+
+### Significant Metric Improvements
+| Metric | Before | After |
+|--------|--------|-------|
+| **Context Relevancy** | 13.5% | 26% |
+| **Context Recall** | 13% | 38% |
+| **Answer Similarity** | 44% | 88% |
+| **Faithfulness** | 63% | 68% |
+| **RAGAS Score** | 3% | 27% |
+
+---
+
+## ReRanking Mechanism
+The newly implemented **ReRanking mechanism** works as follows:
+
+1. **Retrieve News**: Pulls the latest financial news from Alpaca’s API.
+2. **Embed & Store**: Converts text into embeddings and stores in Qdrant Vector DB.
+3. **ReRank with GPT-3.5 Turbo**: Orders retrieved documents based on semantic similarity.
+4. **Generate Chatbot Response**: Uses the highest-ranked content for chatbot interaction.
+
+---
+## Original README
+The update mentioned above build upon the foundation laid by the initial project authors. The original README is provided below. 
+
+<div align="left">
     <h2>Hands-on LLMs Course </h2>
     <h1>Learn to Train and Deploy a Real-Time Financial Advisor</h1>
+    <i>by <a href="https://github.com/iusztinpaul">Paul Iusztin</a>, <a href="https://github.com/Paulescu">Pau Labarta Bajo</a> and <a href="https://github.com/Joywalker">Alexandru Razvant</a></i>
 </div>
 
 ## Table of Contents
@@ -18,8 +61,8 @@
     - [2.5. AWS](#25-aws)
 - [3. Install & Usage](#3-install--usage)
 - [4. Lectures](#4-lectures)
-- [5. License](#6-license)
-- [6. Contributors & Teachers](#7-contributors--teachers)
+- [5. License](#5-license)
+- [6. Contributors & Teachers](#6-contributors--teachers)
 
 ------
 
