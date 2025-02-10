@@ -154,8 +154,8 @@ def predict(message: str, history: List[List[str]], about_me: str) -> str:
 demo = gr.ChatInterface(
     predict,
     textbox=gr.Textbox(
-        placeholder="Ask me a financial question",
-        label="Financial question",
+        placeholder="Ask me anything about the markets or your investments.",
+        label="Example questions",
         container=False,
         scale=7,
     ),
@@ -165,22 +165,23 @@ demo = gr.ChatInterface(
             label="About me",
         )
     ],
-    title="Your Personal Financial Assistant",
-    description="Ask me any financial or crypto market questions, and I will do my best to answer them.",
-    theme="soft",
+    title=(
+        "<div style='display: flex; flex-direction: column; align-items: flex-start;'>"
+        "<img src='https://i.ibb.co/RBFscDW/Wise-Invest-logo.png' style='width: 200px; margin-right: 10px;'>"
+        "<h1 style='margin: 0;'>Make Your Financial Moves Smarter</h1>"
+        "</div>"
+    ),
+    description="Whether you’re navigating the stock market, exploring crypto, or looking for smart ways to grow your wealth, I’m here to help. <br> Ask away and let’s build your financial future together.",
+    theme=gr.Theme.from_hub("JohnSmith9982/small_and_pretty"),
     examples=[
         [
             "What's your opinion on investing in startup companies?",
-            "I am a 30 year old graphic designer. I want to invest in something with potential for high returns.",
         ],
         [
             "What's your opinion on investing in AI-related companies?",
-            "I'm a 25 year old entrepreneur interested in emerging technologies. \
-             I'm willing to take calculated risks for potential high returns.",
         ],
         [
-            "Do you think advancements in gene therapy are impacting biotech company valuations?",
-            "I'm a 31 year old scientist. I'm curious about the potential of biotech investments.",
+            "Should I consider adding cryptocurrency to my portfolio?",
         ],
     ],
     cache_examples=False,
